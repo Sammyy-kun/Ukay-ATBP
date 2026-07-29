@@ -3,7 +3,7 @@ import { DM_Sans, Playfair_Display } from 'next/font/google';
 import './globals.css';
 
 const dmSans = DM_Sans({ subsets: ['latin'] });
-export const playfair = Playfair_Display({ subsets: ['latin'], style: ['italic'], weight: ['900'], variable: '--font-playfair' });
+const playfair = Playfair_Display({ subsets: ['latin'], style: ['italic'], weight: ['900'], variable: '--font-playfair' });
 
 export const metadata: Metadata = {
   title: 'Ukay-Ukay Thrift Retail Platform',
