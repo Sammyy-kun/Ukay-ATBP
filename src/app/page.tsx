@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { User as SupabaseUser } from "@supabase/supabase-js";
 import { Dashboard } from "@/components/Dashboard";
 import { CameraCapture } from "@/components/CameraCapture";
 import { ItemDetail } from "@/components/ItemDetail";
+import { AuthScreen } from "@/components/AuthScreen";
 import { ThriftItem, DashboardStats } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
 import {
@@ -15,6 +17,7 @@ import {
   LogOut,
   Menu,
   Shirt,
+  Loader2,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -90,14 +93,36 @@ const NAV_ITEMS = [
 // Page
 // ---------------------------------------------------------------------------
 export default function Page() {
+  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
   const [items, setItems] = useState<ThriftItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState<View>({ name: "dashboard" });
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeNav, setActiveNav] = useState("Inventory");
 
+  // ── Auth Listener ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setAuthLoading(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setAuthLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   // ── Initial fetch ──────────────────────────────────────────────────────────
   useEffect(() => {
+    if (!user) return;
+
     supabase
       .from("items")
       .select("*")
@@ -106,10 +131,12 @@ export default function Page() {
         if (!error && data) setItems(data.map(fromRow));
         setLoading(false);
       });
-  }, []);
+  }, [user]);
 
   // ── Real-time subscription ─────────────────────────────────────────────────
   useEffect(() => {
+    if (!user) return;
+
     const channel = supabase
       .channel("items-realtime")
       .on(
@@ -129,8 +156,10 @@ export default function Page() {
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
-  }, []);
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   // ── Write helpers ──────────────────────────────────────────────────────────
   async function updateItem(id: string, patch: Partial<ThriftItem>) {
@@ -138,7 +167,6 @@ export default function Page() {
     if (!current) return;
     const merged = { ...current, ...patch };
     await supabase.from("items").update(toRow(merged)).eq("id", id);
-    // real-time subscription will update state
   }
 
   async function deleteItemById(id: string) {
@@ -157,9 +185,28 @@ export default function Page() {
     setSidebarOpen(false);
   }
 
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+  }
+
+  if (authLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-white text-neutral-400">
+        <Loader2 className="h-6 w-6 animate-spin text-neutral-900" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthScreen />;
+  }
+
+  const storeName = user.user_metadata?.store_name || "Thrift Store";
+  const userInitial = (user.user_metadata?.full_name || user.email || "S")[0].toUpperCase();
+
   const stats = deriveStats(items);
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // ── Render Dashboard Layout ────────────────────────────────────────────────
   return (
     <div className="flex h-screen bg-white overflow-hidden">
       {/* Mobile overlay */}
@@ -211,7 +258,10 @@ export default function Page() {
             <Settings size={16} />
             Settings
           </button>
-          <button className="flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-sm text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 transition-colors">
+          <button
+            onClick={handleSignOut}
+            className="flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-sm text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
+          >
             <LogOut size={16} />
             Sign out
           </button>
@@ -234,11 +284,11 @@ export default function Page() {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="hidden sm:inline-block rounded-full border border-neutral-200 px-3 py-1 text-xs text-neutral-500">
-              Store · Manila 01
+            <span className="hidden sm:inline-block rounded-full border border-neutral-200 px-3 py-1 text-xs font-medium text-neutral-600">
+              {storeName}
             </span>
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-neutral-200 text-xs font-medium text-neutral-700">
-              S
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-neutral-900 text-xs font-bold text-white">
+              {userInitial}
             </div>
           </div>
         </header>
@@ -255,14 +305,20 @@ export default function Page() {
                 <Dashboard
                   stats={stats}
                   items={items}
-                  onNewItem={() => { setView({ name: "capture" }); setActiveNav("New Listing"); }}
+                  onNewItem={() => {
+                    setView({ name: "capture" });
+                    setActiveNav("New Listing");
+                  }}
                   onSelectItem={(id) => setView({ name: "detail", id })}
                 />
               )}
 
               {view.name === "capture" && (
                 <CameraCapture
-                  onBack={() => { setView({ name: "dashboard" }); setActiveNav("Inventory"); }}
+                  onBack={() => {
+                    setView({ name: "dashboard" });
+                    setActiveNav("Inventory");
+                  }}
                   onComplete={async (photos) => {
                     const now = new Date().toISOString();
                     const newItem: ThriftItem = {
@@ -304,7 +360,13 @@ export default function Page() {
                           soldPrice: item.price,
                         })
                       }
-                      onRelist={(id) => updateItem(id, { status: "available", soldAt: undefined, soldPrice: undefined })}
+                      onRelist={(id) =>
+                        updateItem(id, {
+                          status: "available",
+                          soldAt: undefined,
+                          soldPrice: undefined,
+                        })
+                      }
                       onDelete={deleteItemById}
                     />
                   );
