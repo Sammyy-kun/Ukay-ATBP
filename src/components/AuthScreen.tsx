@@ -4,12 +4,13 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Shirt, Mail, Lock, Store, User, ArrowRight, Loader2 } from "lucide-react";
 
-export function AuthScreen() {
+export function AuthScreen({ onBack }: { onBack?: () => void }) {
   const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [storeName, setStoreName] = useState("");
+  const [accessCode, setAccessCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
@@ -22,6 +23,9 @@ export function AuthScreen() {
 
     try {
       if (isSignUp) {
+        if (accessCode !== "083104") {
+          throw new Error("Invalid access code.");
+        }
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -57,7 +61,15 @@ export function AuthScreen() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-white px-4 py-12">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-white px-4 py-12">
+      {onBack && (
+        <button 
+          onClick={onBack}
+          className="absolute left-4 top-4 sm:left-8 sm:top-8 text-sm font-medium text-neutral-500 hover:text-neutral-900 transition-colors"
+        >
+          ← Back to store
+        </button>
+      )}
       <div className="w-full max-w-md space-y-6">
         {/* Header Logo */}
         <div className="text-center">
@@ -115,6 +127,21 @@ export function AuthScreen() {
                       placeholder="Manila Thrift Shop"
                       value={storeName}
                       onChange={(e) => setStoreName(e.target.value)}
+                      className="w-full rounded-lg border border-neutral-200 py-2.5 pl-9 pr-3 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium text-neutral-600">Access Code</label>
+                  <div className="relative">
+                    <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400" />
+                    <input
+                      type="text"
+                      required
+                      placeholder="Enter invite code"
+                      value={accessCode}
+                      onChange={(e) => setAccessCode(e.target.value)}
                       className="w-full rounded-lg border border-neutral-200 py-2.5 pl-9 pr-3 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
                     />
                   </div>

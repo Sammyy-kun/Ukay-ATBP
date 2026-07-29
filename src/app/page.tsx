@@ -6,6 +6,7 @@ import { Dashboard } from "@/components/Dashboard";
 import { CameraCapture } from "@/components/CameraCapture";
 import { ItemDetail } from "@/components/ItemDetail";
 import { AuthScreen } from "@/components/AuthScreen";
+import { Storefront } from "@/components/Storefront";
 import { DashboardSkeleton } from "@/components/SkeletonLoader";
 import { ThriftItem, DashboardStats } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
@@ -100,6 +101,7 @@ const NAV_ITEMS = [
 export default function Page() {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [showAuth, setShowAuth] = useState(false);
 
   const [items, setItems] = useState<ThriftItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -147,8 +149,6 @@ export default function Page() {
 
   // ── Initial fetch ──────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!user) { setLoading(false); return; }
-
     setLoading(true);
     supabase
       .from("items")
@@ -167,8 +167,6 @@ export default function Page() {
 
   // ── Real-time subscription ─────────────────────────────────────────────────
   useEffect(() => {
-    if (!user) return;
-
     const channel = supabase
       .channel("items-realtime")
       .on(
@@ -234,7 +232,19 @@ export default function Page() {
   }
 
   if (!user) {
-    return <AuthScreen />;
+    if (showAuth) {
+      return <AuthScreen onBack={() => setShowAuth(false)} />;
+    }
+    
+    if (loading) {
+      return (
+        <div className="flex h-screen items-center justify-center bg-neutral-50 text-neutral-400">
+          <Loader2 className="h-6 w-6 animate-spin text-neutral-900" />
+        </div>
+      );
+    }
+    
+    return <Storefront items={items} onLoginClick={() => setShowAuth(true)} />;
   }
 
   const storeName = user.user_metadata?.store_name || "Thrift Store";
