@@ -6,6 +6,7 @@ import { Dashboard } from "@/components/Dashboard";
 import { CameraCapture } from "@/components/CameraCapture";
 import { ItemDetail } from "@/components/ItemDetail";
 import { AuthScreen } from "@/components/AuthScreen";
+import { DashboardSkeleton } from "@/components/SkeletonLoader";
 import { ThriftItem, DashboardStats } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
 import {
@@ -146,14 +147,20 @@ export default function Page() {
 
   // ── Initial fetch ──────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!user) return;
+    if (!user) { setLoading(false); return; }
 
+    setLoading(true);
     supabase
       .from("items")
       .select("*")
       .order("listed_at", { ascending: false })
       .then(({ data, error }) => {
-        if (!error && data) setItems(data.map(fromRow));
+        if (error) {
+          console.error("[Ukay] fetch error:", JSON.stringify(error));
+        } else if (data) {
+          console.log("[Ukay] fetched", data.length, "rows", data[0]);
+          setItems(data.map(fromRow));
+        }
         setLoading(false);
       });
   }, [user]);
@@ -325,9 +332,7 @@ export default function Page() {
         {/* Page content */}
         <main className="flex-1 overflow-y-auto bg-white p-3 sm:p-6">
           {loading ? (
-            <div className="flex h-48 items-center justify-center">
-              <Loader2 className="h-5 w-5 animate-spin text-neutral-400" />
-            </div>
+            <DashboardSkeleton />
           ) : (
             <>
               {view.name === "dashboard" && (
