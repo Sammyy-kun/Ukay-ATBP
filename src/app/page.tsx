@@ -149,7 +149,11 @@ export default function Page() {
   // ── Nav ────────────────────────────────────────────────────────────────────
   function handleNavClick(label: string, v: "dashboard" | "capture") {
     setActiveNav(label);
-    setView({ name: v });
+    if (v === "dashboard") {
+      setView({ name: "dashboard" });
+    } else {
+      setView({ name: "capture" });
+    }
     setSidebarOpen(false);
   }
 
