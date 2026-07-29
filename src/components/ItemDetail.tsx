@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, Trash2, Shirt, Ruler, Loader2 } from "lucide-react";
+import { ChevronLeft, Trash2, Shirt, Ruler, Loader2, X, Maximize2 } from "lucide-react";
 import { ThriftItem, Category, Size, Condition } from "@/lib/types";
 import { StatusBadge } from "./StatusBadge";
 
@@ -31,6 +31,7 @@ export function ItemDetail({
   const [draft, setDraft] = useState<ThriftItem>(item);
   const [selectedPhotoIdx, setSelectedPhotoIdx] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const isSold = item.status === "sold";
 
   function update<K extends keyof ThriftItem>(key: K, value: ThriftItem[K]) {
@@ -68,12 +69,21 @@ export function ItemDetail({
       {/* Main photo preview */}
       <div className="relative mb-3 flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50">
         {photos[selectedPhotoIdx] ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={photos[selectedPhotoIdx]}
-            alt="Item main photo"
-            className="h-full w-full object-cover"
-          />
+          <button 
+            type="button" 
+            onClick={() => setIsFullscreen(true)}
+            className="group relative h-full w-full outline-none"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={photos[selectedPhotoIdx]}
+              alt="Item main photo"
+              className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+            />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/10">
+              <Maximize2 className="text-white opacity-0 transition-opacity group-hover:opacity-100 drop-shadow-md" size={32} />
+            </div>
+          </button>
         ) : (
           <div className="flex flex-col items-center gap-2 text-neutral-400">
             <Shirt size={40} />
@@ -282,6 +292,25 @@ export function ItemDetail({
               "Save changes"
             )}
           </button>
+        </div>
+      )}
+
+      {/* Fullscreen Image Overlay */}
+      {isFullscreen && photos[selectedPhotoIdx] && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4">
+          <button 
+            type="button"
+            onClick={() => setIsFullscreen(false)}
+            className="absolute right-4 top-4 rounded-full bg-white/10 p-3 text-white backdrop-blur hover:bg-white/20 transition-colors"
+          >
+            <X size={24} />
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={photos[selectedPhotoIdx]}
+            alt="Fullscreen preview"
+            className="max-h-full max-w-full object-contain"
+          />
         </div>
       )}
     </div>

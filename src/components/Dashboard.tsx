@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, Shirt, Search } from "lucide-react";
+import { Plus, Shirt, Search, Download } from "lucide-react";
 import { DashboardStats, ThriftItem, Size, ItemStatus } from "@/lib/types";
 import { StatusBadge } from "./StatusBadge";
 
@@ -30,16 +30,48 @@ export function Dashboard({ stats, items, onNewItem, onSelectItem }: DashboardPr
     });
   }, [items, query, sizeFilter, statusFilter]);
 
+  function exportCSV() {
+    if (items.length === 0) return;
+    
+    const headers = ["id", "title", "category", "size", "condition", "status", "price", "lengthInches", "widthInches", "listedAt", "soldAt", "soldPrice"];
+    
+    const csvContent = [
+      headers.join(","),
+      ...items.map(item => headers.map(header => {
+        const val = item[header as keyof ThriftItem];
+        const strVal = val === undefined || val === null ? "" : String(val);
+        return `"${strVal.replace(/"/g, '""')}"`;
+      }).join(","))
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `ukay_inventory_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
   return (
     <div className="w-full">
       <div className="mb-4 sm:mb-6 flex items-center justify-between">
         <span className="text-base sm:text-lg font-semibold text-neutral-900">Inventory</span>
-        <button
-          onClick={onNewItem}
-          className="flex items-center gap-1.5 rounded-xl bg-neutral-900 px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-white hover:bg-neutral-800 transition-colors"
-        >
-          <Plus size={16} /> New item
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={exportCSV}
+            className="flex items-center gap-1.5 rounded-xl border border-neutral-200 bg-white px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors"
+          >
+            <Download size={16} /> Export
+          </button>
+          <button
+            onClick={onNewItem}
+            className="flex items-center gap-1.5 rounded-xl bg-neutral-900 px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-white hover:bg-neutral-800 transition-colors"
+          >
+            <Plus size={16} /> New item
+          </button>
+        </div>
       </div>
 
       {/* stats */}
