@@ -102,9 +102,30 @@ export default function Page() {
 
   const [items, setItems] = useState<ThriftItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [view, setView] = useState<View>({ name: "dashboard" });
+  const [view, setViewRaw] = useState<View>(() => {
+    if (typeof window === "undefined") return { name: "dashboard" };
+    try {
+      const saved = sessionStorage.getItem("ukay-view");
+      return saved ? (JSON.parse(saved) as View) : { name: "dashboard" };
+    } catch {
+      return { name: "dashboard" };
+    }
+  });
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeNav, setActiveNav] = useState("Inventory");
+  const [activeNav, setActiveNavRaw] = useState(() => {
+    if (typeof window === "undefined") return "Inventory";
+    return sessionStorage.getItem("ukay-nav") ?? "Inventory";
+  });
+
+  function setView(v: View) {
+    sessionStorage.setItem("ukay-view", JSON.stringify(v));
+    setViewRaw(v);
+  }
+
+  function setActiveNav(label: string) {
+    sessionStorage.setItem("ukay-nav", label);
+    setActiveNavRaw(label);
+  }
 
   // ── Auth Listener ──────────────────────────────────────────────────────────
   useEffect(() => {
