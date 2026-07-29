@@ -63,11 +63,9 @@ export function Storefront({ items, onLoginClick }: StorefrontProps) {
       {/* Sidebar */}
       <aside className="hidden md:flex w-56 flex-col border-r border-neutral-200 bg-white px-4 py-6">
         {/* Logo */}
-        <div className="mb-8 flex items-center gap-2.5 px-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-900">
-            <Shirt className="h-4 w-4 text-white" />
-          </div>
-          <span className="text-sm font-bold text-neutral-900">Ukay-Ukay</span>
+        <div className="mb-8 px-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/coat-logo.png" alt="coat" className="h-9 w-auto object-contain" />
         </div>
 
         {/* Nav */}
@@ -93,11 +91,9 @@ export function Storefront({ items, onLoginClick }: StorefrontProps) {
         {/* Top header */}
         <header className="flex h-14 shrink-0 items-center justify-between border-b border-neutral-200 bg-white px-4 sm:px-6">
           {/* Mobile logo */}
-          <div className="flex items-center gap-2 md:hidden">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-neutral-900">
-              <Shirt className="h-3.5 w-3.5 text-white" />
-            </div>
-            <span className="text-sm font-bold text-neutral-900">Ukay-Ukay</span>
+          <div className="flex items-center md:hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/coat-logo.png" alt="coat" className="h-7 w-auto object-contain" />
           </div>
           <span className="hidden md:block text-sm font-semibold text-neutral-900">Shop</span>
 

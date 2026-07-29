@@ -270,11 +270,9 @@ export default function Page() {
         }`}
       >
         {/* Logo */}
-        <div className="flex h-20 items-center gap-3 border-b border-neutral-200 px-8">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-neutral-900">
-            <Shirt size={15} className="text-white" />
-          </div>
-          <span className="font-semibold text-neutral-900">Ukay-Ukay</span>
+        <div className="flex h-20 items-center border-b border-neutral-200 px-8">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/coat-logo.png" alt="coat" className="h-9 w-auto object-contain" />
         </div>
 
         {/* Nav links */}
