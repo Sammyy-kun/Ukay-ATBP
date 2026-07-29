@@ -22,7 +22,8 @@ export function Dashboard({ stats, items, onNewItem, onSelectItem }: DashboardPr
       const matchesQuery =
         query.trim() === "" ||
         item.id.toLowerCase().includes(query.toLowerCase()) ||
-        item.category.toLowerCase().includes(query.toLowerCase());
+        item.category.toLowerCase().includes(query.toLowerCase()) ||
+        item.title.toLowerCase().includes(query.toLowerCase());
       const matchesSize = sizeFilter === "all" || item.size === sizeFilter;
       const matchesStatus = statusFilter === "all" || item.status === statusFilter;
       return matchesQuery && matchesSize && matchesStatus;
@@ -31,18 +32,18 @@ export function Dashboard({ stats, items, onNewItem, onSelectItem }: DashboardPr
 
   return (
     <div className="w-full">
-      <div className="mb-5 flex items-center justify-between">
-        <span className="text-lg font-semibold text-neutral-900">Inventory</span>
+      <div className="mb-4 sm:mb-6 flex items-center justify-between">
+        <span className="text-base sm:text-lg font-semibold text-neutral-900">Inventory</span>
         <button
           onClick={onNewItem}
-          className="flex items-center gap-1.5 rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-medium text-white hover:bg-neutral-800"
+          className="flex items-center gap-1.5 rounded-xl bg-neutral-900 px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-white hover:bg-neutral-800 transition-colors"
         >
-          <Plus size={15} /> New item
+          <Plus size={16} /> New item
         </button>
       </div>
 
       {/* stats */}
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
         <StatCard label="Live listings" value={stats.liveListings} />
         <StatCard label="Sold this week" value={stats.soldThisWeek} />
         <StatCard label="Reserved" value={stats.reserved} />
@@ -50,70 +51,93 @@ export function Dashboard({ stats, items, onNewItem, onSelectItem }: DashboardPr
       </div>
 
       {/* filters */}
-      <div className="mb-6 flex flex-wrap gap-3">
+      <div className="mb-6 flex flex-col sm:flex-row gap-2.5 sm:gap-3">
         <div className="relative flex-1 min-w-[160px]">
-          <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+          <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by SKU, category"
-            className="w-full rounded-lg border border-neutral-200 py-2.5 pl-9 pr-3 text-sm text-neutral-900 focus:border-neutral-400 focus:outline-none"
+            placeholder="Search by SKU, title, category..."
+            className="w-full rounded-xl border border-neutral-200 py-2.5 pl-9 pr-3 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
           />
         </div>
-        <select
-          value={sizeFilter}
-          onChange={(e) => setSizeFilter(e.target.value as Size | "all")}
-          className="rounded-lg border border-neutral-200 px-4 py-2.5 text-sm text-neutral-700"
-        >
-          <option value="all">All sizes</option>
-          {(["XS", "S", "M", "L", "XL"] as Size[]).map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as ItemStatus | "all")}
-          className="rounded-lg border border-neutral-200 px-4 py-2.5 text-sm text-neutral-700"
-        >
-          <option value="all">All status</option>
-          <option value="available">Available</option>
-          <option value="reserved">Reserved</option>
-          <option value="sold">Sold</option>
-        </select>
+        <div className="flex gap-2">
+          <select
+            value={sizeFilter}
+            onChange={(e) => setSizeFilter(e.target.value as Size | "all")}
+            className="flex-1 sm:flex-none rounded-xl border border-neutral-200 px-3.5 py-2.5 text-sm text-neutral-700 focus:border-neutral-900"
+          >
+            <option value="all">All sizes</option>
+            {(["XS", "S", "M", "L", "XL"] as Size[]).map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as ItemStatus | "all")}
+            className="flex-1 sm:flex-none rounded-xl border border-neutral-200 px-3.5 py-2.5 text-sm text-neutral-700 focus:border-neutral-900"
+          >
+            <option value="all">All status</option>
+            <option value="available">Available</option>
+            <option value="reserved">Reserved</option>
+            <option value="sold">Sold</option>
+          </select>
+        </div>
       </div>
 
       {/* item grid */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-        {filtered.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => onSelectItem?.(item.id)}
-            className="overflow-hidden rounded-xl border border-neutral-200 text-left hover:border-neutral-300"
-          >
-            <div className="relative flex aspect-square items-center justify-center bg-neutral-50">
-              <Shirt
-                size={26}
-                className={`text-neutral-300 ${item.status === "sold" ? "opacity-50" : ""}`}
-                aria-hidden
-              />
-              <div className="absolute left-1.5 top-1.5">
-                <StatusBadge status={item.status} />
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
+        {filtered.map((item) => {
+          const coverPhoto = item.photos && item.photos.length > 0 ? item.photos[0] : null;
+          return (
+            <button
+              key={item.id}
+              onClick={() => onSelectItem?.(item.id)}
+              className="group overflow-hidden rounded-2xl border border-neutral-200 bg-white text-left transition-all hover:border-neutral-400 hover:shadow-md"
+            >
+              <div className="relative flex aspect-square items-center justify-center bg-neutral-50 overflow-hidden">
+                {coverPhoto ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={coverPhoto}
+                    alt={item.title}
+                    className={`h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 ${
+                      item.status === "sold" ? "opacity-60 grayscale" : ""
+                    }`}
+                  />
+                ) : (
+                  <Shirt
+                    size={32}
+                    className={`text-neutral-300 ${item.status === "sold" ? "opacity-50" : ""}`}
+                    aria-hidden
+                  />
+                )}
+                <div className="absolute left-2 top-2">
+                  <StatusBadge status={item.status} />
+                </div>
               </div>
-            </div>
-            <div className="px-3.5 py-3">
-              <p className="truncate text-xs font-medium text-neutral-900">
-                {item.title} · {item.size}
-              </p>
-              <p className="mt-0.5 text-xs text-neutral-500">
-                ₱{item.price} · {item.id}
-              </p>
-            </div>
-          </button>
-        ))}
+              <div className="p-3">
+                <p className="truncate text-xs font-semibold text-neutral-900">
+                  {item.title} · {item.size}
+                </p>
+                <div className="mt-1 flex items-center justify-between text-xs text-neutral-500">
+                  <span className="font-semibold text-neutral-900">₱{item.price}</span>
+                  <span className="text-[11px] text-neutral-400">{item.id}</span>
+                </div>
+                {(item.lengthInches || item.widthInches) && (
+                  <p className="mt-1 text-[10px] text-neutral-400">
+                    {item.lengthInches ? `L: ${item.lengthInches}" ` : ""}
+                    {item.widthInches ? `W: ${item.widthInches}"` : ""}
+                  </p>
+                )}
+              </div>
+            </button>
+          );
+        })}
         {filtered.length === 0 && (
-          <p className="col-span-full py-8 text-center text-sm text-neutral-400">
+          <p className="col-span-full py-12 text-center text-sm text-neutral-400">
             No items match your filters.
           </p>
         )}
@@ -124,9 +148,9 @@ export function Dashboard({ stats, items, onNewItem, onSelectItem }: DashboardPr
 
 function StatCard({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-2xl bg-neutral-50 p-5">
-      <p className="mb-1.5 text-xs text-neutral-500">{label}</p>
-      <p className="text-2xl font-semibold text-neutral-900">{value}</p>
+    <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-3.5 sm:p-5">
+      <p className="mb-1 text-xs text-neutral-500">{label}</p>
+      <p className="text-lg sm:text-2xl font-bold text-neutral-900">{value}</p>
     </div>
   );
 }

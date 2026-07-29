@@ -14,27 +14,43 @@ interface CameraCaptureProps {
 export function CameraCapture({ onBack, onComplete }: CameraCaptureProps) {
   const [photos, setPhotos] = useState<(string | null)[]>([null, null, null, null]);
   const [activeIndex, setActiveIndex] = useState(0);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
 
   const activeLabel: ShotLabel = SHOTS[activeIndex];
-  const allDone = photos.every((p) => p !== null);
+  const hasAnyPhoto = photos.some((p) => p !== null);
 
-  function handleShutterClick() {
-    fileInputRef.current?.click();
+  function handleCameraClick() {
+    cameraInputRef.current?.click();
+  }
+
+  function handleGalleryClick() {
+    galleryInputRef.current?.click();
+  }
+
+  function processFile(file: File) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const dataUrl = e.target?.result as string;
+      if (!dataUrl) return;
+
+      setPhotos((prev) => {
+        const next = [...prev];
+        next[activeIndex] = dataUrl;
+        return next;
+      });
+
+      // advance to next empty slot
+      const nextIndex = photos.findIndex((p, i) => p === null && i !== activeIndex);
+      if (nextIndex !== -1) setActiveIndex(nextIndex);
+    };
+    reader.readAsDataURL(file);
   }
 
   function handleFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    setPhotos((prev) => {
-      const next = [...prev];
-      next[activeIndex] = url;
-      return next;
-    });
-    // advance to the next unfilled shot, if any
-    const nextIndex = photos.findIndex((p, i) => p === null && i !== activeIndex);
-    if (nextIndex !== -1) setActiveIndex(nextIndex);
+    processFile(file);
     e.target.value = "";
   }
 
@@ -47,25 +63,25 @@ export function CameraCapture({ onBack, onComplete }: CameraCaptureProps) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-sm rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
+    <div className="mx-auto w-full max-w-md rounded-2xl border border-neutral-200 bg-white p-4 sm:p-6 shadow-sm">
       {/* header */}
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-4 flex items-center justify-between">
         <button
           onClick={onBack}
           aria-label="Back"
-          className="rounded-full p-1 text-neutral-500 hover:bg-neutral-100"
+          className="rounded-full p-2 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
         >
-          <ChevronLeft size={18} />
+          <ChevronLeft size={20} />
         </button>
-        <span className="text-sm font-medium text-neutral-900">
+        <span className="text-sm font-semibold text-neutral-900">
           Shot {activeIndex + 1} of {SHOTS.length} · {activeLabel}
         </span>
-        <div className="w-6" />
+        <div className="w-8" />
       </div>
 
       {/* viewfinder */}
-      <div className="relative mb-4 flex aspect-[3/4] items-center justify-center overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50">
-        <div className="absolute inset-6 rounded-lg border border-dashed border-neutral-300" />
+      <div className="relative mb-5 flex aspect-[3/4] max-h-[380px] sm:max-h-[420px] w-full items-center justify-center overflow-hidden rounded-2xl border border-neutral-200 bg-neutral-50 shadow-inner">
+        <div className="absolute inset-6 rounded-xl border-2 border-dashed border-neutral-300 pointer-events-none" />
         {photos[activeIndex] ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -74,15 +90,15 @@ export function CameraCapture({ onBack, onComplete }: CameraCaptureProps) {
             className="h-full w-full object-cover"
           />
         ) : (
-          <Shirt size={40} className="text-neutral-300" aria-hidden />
+          <Shirt size={48} className="text-neutral-300" aria-hidden />
         )}
-        <span className="absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-white/90 px-3 py-1 text-[11px] text-neutral-600 shadow-sm">
+        <span className="absolute bottom-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-white/90 backdrop-blur-sm px-3.5 py-1 text-xs font-medium text-neutral-600 shadow-sm border border-neutral-200/50">
           Fill the frame, avoid glare
         </span>
       </div>
 
       {/* shot checklist */}
-      <div className="mb-4 flex gap-1.5 overflow-x-auto">
+      <div className="mb-5 flex gap-1.5 overflow-x-auto pb-1 scrollbar-none">
         {SHOTS.map((label, i) => {
           const done = photos[i] !== null;
           const active = i === activeIndex;
@@ -90,12 +106,12 @@ export function CameraCapture({ onBack, onComplete }: CameraCaptureProps) {
             <button
               key={label}
               onClick={() => setActiveIndex(i)}
-              className={`flex flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border px-2.5 py-1.5 text-[11px] transition-colors ${
+              className={`flex flex-1 min-w-[75px] items-center justify-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-2 text-xs font-medium transition-colors ${
                 active
                   ? "border-neutral-900 bg-neutral-900 text-white"
                   : done
                   ? "border-green-200 bg-green-50 text-green-700"
-                  : "border-neutral-200 text-neutral-500"
+                  : "border-neutral-200 text-neutral-500 hover:bg-neutral-50"
               }`}
             >
               <span
@@ -110,44 +126,62 @@ export function CameraCapture({ onBack, onComplete }: CameraCaptureProps) {
       </div>
 
       {/* shutter row */}
-      <div className="mb-4 flex items-center justify-center gap-8">
-        <button aria-label="Import from gallery" className="text-neutral-400 hover:text-neutral-600">
-          <ImageIcon size={20} />
+      <div className="mb-5 flex items-center justify-center gap-8">
+        <button
+          onClick={handleGalleryClick}
+          aria-label="Import from gallery"
+          title="Import from gallery"
+          className="flex h-10 w-10 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
+        >
+          <ImageIcon size={22} />
         </button>
         <button
-          onClick={handleShutterClick}
+          onClick={handleCameraClick}
           aria-label="Take photo"
-          className="flex h-14 w-14 items-center justify-center rounded-full border-[3px] border-neutral-900"
+          title="Take photo"
+          className="flex h-16 w-16 items-center justify-center rounded-full border-4 border-neutral-900 transition-transform active:scale-95"
         >
-          <span className="h-11 w-11 rounded-full bg-neutral-900" />
+          <span className="h-12 w-12 rounded-full bg-neutral-900" />
         </button>
         <button
           onClick={handleUndo}
-          aria-label="Undo last photo"
-          className="text-neutral-400 hover:text-neutral-600"
+          aria-label="Undo photo"
+          title="Undo photo"
+          className="flex h-10 w-10 items-center justify-center rounded-full text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
         >
-          <Undo2 size={20} />
+          <Undo2 size={22} />
         </button>
       </div>
 
-      {/* hidden native camera input — capture="environment" opens the rear camera on mobile */}
+      {/* Hidden file inputs: Camera & Gallery */}
       <input
-        ref={fileInputRef}
+        ref={cameraInputRef}
         type="file"
         accept="image/*"
         capture="environment"
         onChange={handleFileSelected}
         className="hidden"
       />
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileSelected}
+        className="hidden"
+      />
 
       {/* thumbnail strip */}
-      <div className="mb-4 flex gap-2 overflow-x-auto pb-0.5">
+      <div className="mb-5 flex gap-2.5 overflow-x-auto pb-1">
         {photos.map((p, i) => (
           <button
             key={i}
             onClick={() => setActiveIndex(i)}
-            className={`h-11 w-11 flex-none overflow-hidden rounded-lg border ${
-              p ? "border-neutral-300" : "border-dashed border-neutral-200"
+            className={`h-12 w-12 flex-none overflow-hidden rounded-xl border-2 transition-all ${
+              i === activeIndex
+                ? "border-neutral-900 ring-2 ring-neutral-900/20"
+                : p
+                ? "border-neutral-300"
+                : "border-dashed border-neutral-200 bg-neutral-50"
             }`}
           >
             {p ? (
@@ -159,11 +193,11 @@ export function CameraCapture({ onBack, onComplete }: CameraCaptureProps) {
       </div>
 
       <button
-        disabled={!allDone}
+        disabled={!hasAnyPhoto}
         onClick={() => onComplete(photos.filter((p): p is string => p !== null))}
-        className="w-full rounded-lg bg-neutral-900 py-2.5 text-sm font-medium text-white transition-opacity disabled:opacity-40"
+        className="w-full rounded-xl bg-neutral-900 py-3 text-sm font-semibold text-white transition-opacity hover:bg-neutral-800 disabled:opacity-40"
       >
-        Done, continue to tagging
+        Done, continue to item details
       </button>
     </div>
   );

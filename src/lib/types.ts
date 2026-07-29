@@ -12,9 +12,11 @@ export interface ThriftItem {
   size: Size;
   condition: Condition;
   price: number; // in PHP
+  lengthInches?: number; // Chest/Length measurement in inches
+  widthInches?: number; // Waist/Width measurement in inches
   status: ItemStatus;
   notes: string;
-  photos: string[]; // photo URLs; empty slots render as placeholders
+  photos: string[]; // photo URLs or base64 data URLs
   listedAt: string; // ISO date
   soldAt?: string;
   soldPrice?: number;

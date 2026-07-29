@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, Trash2, Shirt, Tag, ZoomIn } from "lucide-react";
+import { ChevronLeft, Trash2, Shirt, Ruler } from "lucide-react";
 import { ThriftItem, Category, Size, Condition } from "@/lib/types";
 import { StatusBadge } from "./StatusBadge";
 
@@ -19,8 +19,6 @@ interface ItemDetailProps {
   onDelete?: (id: string) => void;
 }
 
-const PHOTO_ICONS = [Shirt, Shirt, Tag, ZoomIn];
-
 export function ItemDetail({
   item,
   onBack,
@@ -31,85 +29,130 @@ export function ItemDetail({
   onDelete,
 }: ItemDetailProps) {
   const [draft, setDraft] = useState<ThriftItem>(item);
+  const [selectedPhotoIdx, setSelectedPhotoIdx] = useState(0);
   const isSold = item.status === "sold";
 
   function update<K extends keyof ThriftItem>(key: K, value: ThriftItem[K]) {
     setDraft((prev) => ({ ...prev, [key]: value }));
   }
 
+  const photos = draft.photos.length > 0 ? draft.photos : [];
+
   return (
-    <div className="mx-auto w-full max-w-sm rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
+    <div className="mx-auto w-full max-w-lg rounded-2xl border border-neutral-200 bg-white p-4 sm:p-6 shadow-sm">
       {/* header */}
-      <div className="mb-3 flex items-center justify-between">
-        <button onClick={onBack} aria-label="Back" className="rounded-full p-1 text-neutral-500 hover:bg-neutral-100">
-          <ChevronLeft size={18} />
+      <div className="mb-4 flex items-center justify-between">
+        <button
+          onClick={onBack}
+          aria-label="Back"
+          className="rounded-full p-2 text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 transition-colors"
+        >
+          <ChevronLeft size={20} />
         </button>
-        <span className="text-sm font-medium text-neutral-900">{item.id}</span>
+        <span className="text-sm font-semibold text-neutral-900">{item.id}</span>
         <button
           onClick={() => onDelete?.(item.id)}
           aria-label="Delete item"
-          className="rounded-full p-1 text-red-500 hover:bg-red-50"
+          className="rounded-full p-2 text-red-500 hover:bg-red-50 transition-colors"
         >
-          <Trash2 size={17} />
+          <Trash2 size={18} />
         </button>
       </div>
 
-      {/* photo grid */}
-      <div className={`mb-3 grid grid-cols-4 gap-1.5 ${isSold ? "opacity-50" : ""}`}>
-        {PHOTO_ICONS.map((Icon, i) => (
-          <div
-            key={i}
-            className={`flex aspect-square items-center justify-center rounded-lg border bg-neutral-50 ${
-              i === 0 ? "border-neutral-900" : "border-neutral-200"
-            }`}
-          >
-            <Icon size={18} className="text-neutral-400" aria-hidden />
+      {/* Main photo preview */}
+      <div className="relative mb-3 flex aspect-[4/3] w-full items-center justify-center overflow-hidden rounded-xl border border-neutral-200 bg-neutral-50">
+        {photos[selectedPhotoIdx] ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={photos[selectedPhotoIdx]}
+            alt="Item main photo"
+            className="h-full w-full object-cover"
+          />
+        ) : (
+          <div className="flex flex-col items-center gap-2 text-neutral-400">
+            <Shirt size={40} />
+            <span className="text-xs">No photos uploaded</span>
           </div>
-        ))}
+        )}
+      </div>
+
+      {/* photo grid thumbnails */}
+      <div className={`mb-4 grid grid-cols-4 gap-2 ${isSold ? "opacity-50" : ""}`}>
+        {Array.from({ length: 4 }).map((_, i) => {
+          const photo = photos[i];
+          const isSelected = i === selectedPhotoIdx;
+          return (
+            <button
+              key={i}
+              onClick={() => setSelectedPhotoIdx(i)}
+              className={`relative flex aspect-square items-center justify-center overflow-hidden rounded-lg border-2 transition-all ${
+                isSelected
+                  ? "border-neutral-900 ring-2 ring-neutral-900/20"
+                  : photo
+                  ? "border-neutral-200 hover:border-neutral-400"
+                  : "border-dashed border-neutral-200 bg-neutral-50"
+              }`}
+            >
+              {photo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={photo} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <Shirt size={16} className="text-neutral-300" aria-hidden />
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* status row */}
-      <div className="mb-4 flex gap-2">
-        <StatusBadge status={item.status} />
-        <span className="rounded-full border border-neutral-200 px-3 py-1 text-xs text-neutral-500">
-          {isSold ? `Sold ${item.soldAt ?? ""}` : `Listed ${item.listedAt}`}
-        </span>
+      <div className="mb-5 flex items-center justify-between rounded-xl bg-neutral-50 p-3">
+        <div className="flex items-center gap-2">
+          <StatusBadge status={item.status} />
+          <span className="text-xs text-neutral-500">
+            {isSold
+              ? `Sold ${item.soldAt ? new Date(item.soldAt).toLocaleDateString() : ""}`
+              : `Listed ${new Date(item.listedAt).toLocaleDateString()}`}
+          </span>
+        </div>
       </div>
 
       {isSold ? (
         // read-only sale summary
-        <div className="mb-4 rounded-lg bg-neutral-50 p-3 text-xs">
+        <div className="mb-5 rounded-xl bg-neutral-50 p-4 text-xs space-y-2">
           <Row label="Title" value={`${item.title} · ${item.size}`} />
           <Row label="Sold price" value={`₱${item.soldPrice ?? item.price}`} />
-          <Row label="Time to sell" value="5 days" />
+          {item.lengthInches && <Row label="Length" value={`${item.lengthInches} in`} />}
+          {item.widthInches && <Row label="Width" value={`${item.widthInches} in`} />}
           <Row label="Payment" value={item.paymentMethod ?? "—"} last />
         </div>
       ) : (
-        <div className="mb-4 space-y-3">
+        <div className="mb-5 space-y-4">
           <Field label="Title">
             <input
               value={draft.title}
               onChange={(e) => update("title", e.target.value)}
-              className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-400 focus:outline-none"
+              className="w-full rounded-lg border border-neutral-200 px-3.5 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
             />
           </Field>
-          <div className="flex gap-3">
-            <Field label="Category" className="flex-1">
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Category">
               <select
                 value={draft.category}
                 onChange={(e) => update("category", e.target.value as Category)}
-                className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900"
+                className="w-full rounded-lg border border-neutral-200 px-3.5 py-2.5 text-sm text-neutral-900 focus:border-neutral-900"
               >
                 {CATEGORIES.map((c) => (
                   <option key={c}>{c}</option>
                 ))}
               </select>
             </Field>
-            <Field label="Size" className="flex-1">
+
+            <Field label="Size">
               <select
                 value={draft.size}
                 onChange={(e) => update("size", e.target.value as Size)}
-                className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900"
+                className="w-full rounded-lg border border-neutral-200 px-3.5 py-2.5 text-sm text-neutral-900 focus:border-neutral-900"
               >
                 {SIZES.map((s) => (
                   <option key={s}>{s}</option>
@@ -117,69 +160,107 @@ export function ItemDetail({
               </select>
             </Field>
           </div>
-          <div className="flex gap-3">
-            <Field label="Condition" className="flex-1">
+
+          {/* Measurements: Length & Width in inches */}
+          <div className="rounded-xl border border-neutral-200 bg-neutral-50/50 p-3">
+            <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-neutral-700">
+              <Ruler size={14} className="text-neutral-500" />
+              <span>Measurements (Inches)</span>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Length (in)">
+                <input
+                  type="number"
+                  step="0.5"
+                  placeholder="e.g. 26"
+                  value={draft.lengthInches ?? ""}
+                  onChange={(e) =>
+                    update("lengthInches", e.target.value ? parseFloat(e.target.value) : undefined)
+                  }
+                  className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                />
+              </Field>
+
+              <Field label="Width / Bust (in)">
+                <input
+                  type="number"
+                  step="0.5"
+                  placeholder="e.g. 20"
+                  value={draft.widthInches ?? ""}
+                  onChange={(e) =>
+                    update("widthInches", e.target.value ? parseFloat(e.target.value) : undefined)
+                  }
+                  className="w-full rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+                />
+              </Field>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Condition">
               <select
                 value={draft.condition}
                 onChange={(e) => update("condition", e.target.value as Condition)}
-                className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900"
+                className="w-full rounded-lg border border-neutral-200 px-3.5 py-2.5 text-sm text-neutral-900 focus:border-neutral-900"
               >
                 {CONDITIONS.map((c) => (
                   <option key={c}>{c}</option>
                 ))}
               </select>
             </Field>
-            <Field label="Price" className="flex-1">
+
+            <Field label="Price (₱)">
               <input
-                value={`₱${draft.price}`}
+                value={draft.price}
                 onChange={(e) => update("price", Number(e.target.value.replace(/[^\d]/g, "")) || 0)}
-                className="w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 focus:border-neutral-400 focus:outline-none"
+                className="w-full rounded-lg border border-neutral-200 px-3.5 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
               />
             </Field>
           </div>
         </div>
       )}
 
-      <Field label="Notes / flaws" className="mb-4">
+      <Field label="Notes / flaws" className="mb-5">
         <textarea
           rows={2}
           disabled={isSold}
+          placeholder="Add details about condition, flaws, fabric..."
           value={draft.notes}
           onChange={(e) => update("notes", e.target.value)}
-          className="w-full resize-none rounded-lg border border-neutral-200 px-3 py-2 text-sm text-neutral-900 disabled:bg-neutral-50 disabled:text-neutral-400"
+          className="w-full resize-none rounded-lg border border-neutral-200 px-3.5 py-2.5 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none disabled:bg-neutral-50 disabled:text-neutral-400"
         />
       </Field>
 
       {isSold ? (
         <button
           onClick={() => onRelist?.(item.id)}
-          className="w-full rounded-lg border border-neutral-300 py-2.5 text-sm font-medium text-neutral-900 hover:bg-neutral-50"
+          className="w-full rounded-xl border border-neutral-300 py-3 text-sm font-semibold text-neutral-900 hover:bg-neutral-50 transition-colors"
         >
           Relist item
         </button>
       ) : (
-        <>
-          <div className="mb-2.5 flex gap-2">
+        <div className="space-y-2">
+          <div className="flex gap-2">
             <button
               onClick={() => onMarkReserved?.(item.id)}
-              className="flex-1 rounded-lg border border-neutral-300 py-2.5 text-xs font-medium text-neutral-900 hover:bg-neutral-50"
+              className="flex-1 rounded-xl border border-neutral-300 py-2.5 text-xs font-semibold text-neutral-900 hover:bg-neutral-50 transition-colors"
             >
               Mark reserved
             </button>
             <button
               onClick={() => onMarkSold?.(item.id)}
-              className="flex-1 rounded-lg border border-neutral-300 py-2.5 text-xs font-medium text-neutral-900 hover:bg-neutral-50"
+              className="flex-1 rounded-xl border border-neutral-300 py-2.5 text-xs font-semibold text-neutral-900 hover:bg-neutral-50 transition-colors"
             >
               Mark sold
             </button>
           </div>
           <button
             onClick={() => onSave?.(draft)}
-            className="w-full rounded-lg bg-neutral-900 py-2.5 text-sm font-medium text-white hover:bg-neutral-800"
+            className="w-full rounded-xl bg-neutral-900 py-3 text-sm font-semibold text-white hover:bg-neutral-800 transition-colors"
           >
             Save changes
           </button>
-        </>
+        </div>
       )}
     </div>
   );
@@ -196,7 +277,7 @@ function Field({
 }) {
   return (
     <div className={className}>
-      <label className="mb-1.5 block text-xs text-neutral-500">{label}</label>
+      <label className="mb-1.5 block text-xs font-medium text-neutral-500">{label}</label>
       {children}
     </div>
   );
@@ -206,7 +287,7 @@ function Row({ label, value, last }: { label: string; value: string; last?: bool
   return (
     <div className={`flex justify-between ${last ? "" : "mb-1.5"}`}>
       <span className="text-neutral-500">{label}</span>
-      <span className="text-neutral-900">{value}</span>
+      <span className="font-medium text-neutral-900">{value}</span>
     </div>
   );
 }

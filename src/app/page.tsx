@@ -32,6 +32,8 @@ function fromRow(row: any): ThriftItem {
     size: row.size,
     condition: row.condition,
     price: row.price,
+    lengthInches: row.length_inches ?? undefined,
+    widthInches: row.width_inches ?? undefined,
     status: row.status,
     notes: row.notes ?? "",
     photos: row.photos ?? [],
@@ -50,6 +52,8 @@ function toRow(item: ThriftItem): Record<string, unknown> {
     size: item.size,
     condition: item.condition,
     price: item.price,
+    length_inches: item.lengthInches ?? null,
+    width_inches: item.widthInches ?? null,
     status: item.status,
     notes: item.notes,
     photos: item.photos,
@@ -294,7 +298,7 @@ export default function Page() {
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto bg-white p-6">
+        <main className="flex-1 overflow-y-auto bg-white p-3 sm:p-6">
           {loading ? (
             <div className="flex h-48 items-center justify-center text-sm text-neutral-400">
               Loading inventory…
