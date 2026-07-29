@@ -5,3 +5,10 @@
 html, body {
   height: 100%;
 }
+
+/* Prevent iOS Safari from zooming in on input focus (requires font-size >= 16px) */
+input, select, textarea {
+  font-size: 16px !important;
+  touch-action: manipulation;
+}
+

@@ -105,7 +105,7 @@ export default function Page() {
   const [view, setViewRaw] = useState<View>(() => {
     if (typeof window === "undefined") return { name: "dashboard" };
     try {
-      const saved = sessionStorage.getItem("ukay-view");
+      const saved = localStorage.getItem("ukay-view");
       return saved ? (JSON.parse(saved) as View) : { name: "dashboard" };
     } catch {
       return { name: "dashboard" };
@@ -114,16 +114,16 @@ export default function Page() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeNav, setActiveNavRaw] = useState(() => {
     if (typeof window === "undefined") return "Inventory";
-    return sessionStorage.getItem("ukay-nav") ?? "Inventory";
+    return localStorage.getItem("ukay-nav") ?? "Inventory";
   });
 
   function setView(v: View) {
-    sessionStorage.setItem("ukay-view", JSON.stringify(v));
+    localStorage.setItem("ukay-view", JSON.stringify(v));
     setViewRaw(v);
   }
 
   function setActiveNav(label: string) {
-    sessionStorage.setItem("ukay-nav", label);
+    localStorage.setItem("ukay-nav", label);
     setActiveNavRaw(label);
   }
 
@@ -325,8 +325,8 @@ export default function Page() {
         {/* Page content */}
         <main className="flex-1 overflow-y-auto bg-white p-3 sm:p-6">
           {loading ? (
-            <div className="flex h-48 items-center justify-center text-sm text-neutral-400">
-              Loading inventory…
+            <div className="flex h-48 items-center justify-center">
+              <Loader2 className="h-5 w-5 animate-spin text-neutral-400" />
             </div>
           ) : (
             <>
