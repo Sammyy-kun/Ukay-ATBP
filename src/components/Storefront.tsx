@@ -4,6 +4,7 @@ import { ThriftItem } from "@/lib/types";
 import { Shirt, Search } from "lucide-react";
 import { useState, useMemo } from "react";
 import { CoatLogo } from "./CoatLogo";
+import { CustomerItemDetail } from "./CustomerItemDetail";
 
 interface StorefrontProps {
   items: ThriftItem[];
@@ -17,6 +18,7 @@ export function Storefront({ items, onLoginClick }: StorefrontProps) {
   const [query, setQuery] = useState("");
   const [sizeFilter, setSizeFilter] = useState<Size | "all">("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
+  const [selectedItem, setSelectedItem] = useState<ThriftItem | null>(null);
 
   const availableItems = useMemo(
     () => items.filter((i) => i.status === "available"),
@@ -38,6 +40,25 @@ export function Storefront({ items, onLoginClick }: StorefrontProps) {
       return matchesQuery && matchesSize && matchesCategory;
     });
   }, [availableItems, query, sizeFilter, categoryFilter]);
+
+  if (selectedItem) {
+    return (
+      <div className="min-h-screen bg-white">
+        <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-neutral-200 bg-white px-4 sm:px-8">
+          <CoatLogo className="text-3xl" />
+          <button
+            onClick={onLoginClick}
+            className="rounded-lg border border-neutral-200 bg-white px-4 py-2 text-xs font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"
+          >
+            Seller Login
+          </button>
+        </header>
+        <main className="py-6">
+          <CustomerItemDetail item={selectedItem} onBack={() => setSelectedItem(null)} />
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-white">
@@ -97,9 +118,10 @@ export function Storefront({ items, onLoginClick }: StorefrontProps) {
           {filtered.map((item) => {
             const cover = item.photos?.[0] ?? null;
             return (
-              <div
+              <button
                 key={item.id}
-                className="group overflow-hidden rounded-2xl border border-neutral-200 bg-white text-left transition-all hover:border-neutral-400 hover:shadow-md"
+                onClick={() => setSelectedItem(item)}
+                className="group overflow-hidden rounded-2xl border border-neutral-200 bg-white text-left transition-all hover:border-neutral-400 hover:shadow-md outline-none focus-visible:ring-2 focus-visible:ring-neutral-900"
               >
                 <div className="relative flex aspect-square items-center justify-center bg-neutral-50 overflow-hidden">
                   {cover ? (
@@ -131,7 +153,7 @@ export function Storefront({ items, onLoginClick }: StorefrontProps) {
                     </p>
                   )}
                 </div>
-              </div>
+              </button>
             );
           })}
           {filtered.length === 0 && (
