@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { ChevronLeft, Shirt, Undo2, Image as ImageIcon } from "lucide-react";
 
-const SHOTS = ["Front", "Back", "Tag / label", "Flaws"] as const;
+const SHOTS = ["Front", "Back", "Tag 1", "Tag 2", "Tag 3", "Flaws"] as const;
 type ShotLabel = (typeof SHOTS)[number];
 
 interface CameraCaptureProps {
@@ -12,7 +12,7 @@ interface CameraCaptureProps {
 }
 
 export function CameraCapture({ onBack, onComplete }: CameraCaptureProps) {
-  const [photos, setPhotos] = useState<(string | null)[]>([null, null, null, null]);
+  const [photos, setPhotos] = useState<(string | null)[]>(Array(6).fill(null));
   const [activeIndex, setActiveIndex] = useState(0);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const galleryInputRef = useRef<HTMLInputElement>(null);

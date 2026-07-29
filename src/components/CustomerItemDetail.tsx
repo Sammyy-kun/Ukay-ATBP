@@ -57,12 +57,12 @@ export function CustomerItemDetail({ item, onBack }: CustomerItemDetailProps) {
 
           {/* Thumbnails */}
           {photos.length > 1 && (
-            <div className="grid grid-cols-4 gap-2">
+            <div className="flex flex-wrap gap-2">
               {photos.map((photo, i) => (
                 <button
                   key={i}
                   onClick={() => setSelectedPhotoIdx(i)}
-                  className={`relative flex aspect-square items-center justify-center overflow-hidden rounded-xl border-2 transition-all ${
+                  className={`relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl border-2 transition-all ${
                     i === selectedPhotoIdx
                       ? "border-neutral-900 ring-2 ring-neutral-900/20"
                       : "border-neutral-200 hover:border-neutral-400"

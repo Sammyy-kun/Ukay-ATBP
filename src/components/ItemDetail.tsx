@@ -93,8 +93,8 @@ export function ItemDetail({
       </div>
 
       {/* photo grid thumbnails */}
-      <div className={`mb-4 grid grid-cols-4 gap-2 ${isSold ? "opacity-50" : ""}`}>
-        {Array.from({ length: 4 }).map((_, i) => {
+      <div className={`mb-4 grid grid-cols-6 gap-2 ${isSold ? "opacity-50" : ""}`}>
+        {Array.from({ length: 6 }).map((_, i) => {
           const photo = photos[i];
           const isSelected = i === selectedPhotoIdx;
           return (
