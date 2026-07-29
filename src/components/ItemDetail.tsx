@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronLeft, Trash2, Shirt, Ruler } from "lucide-react";
+import { ChevronLeft, Trash2, Shirt, Ruler, Loader2 } from "lucide-react";
 import { ThriftItem, Category, Size, Condition } from "@/lib/types";
 import { StatusBadge } from "./StatusBadge";
 
@@ -12,7 +12,7 @@ const CONDITIONS: Condition[] = ["Like new", "Good", "Fair"];
 interface ItemDetailProps {
   item: ThriftItem;
   onBack?: () => void;
-  onSave?: (updated: ThriftItem) => void;
+  onSave?: (updated: ThriftItem) => Promise<void> | void;
   onMarkReserved?: (id: string) => void;
   onMarkSold?: (id: string) => void;
   onRelist?: (id: string) => void;
@@ -30,6 +30,7 @@ export function ItemDetail({
 }: ItemDetailProps) {
   const [draft, setDraft] = useState<ThriftItem>(item);
   const [selectedPhotoIdx, setSelectedPhotoIdx] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
   const isSold = item.status === "sold";
 
   function update<K extends keyof ThriftItem>(key: K, value: ThriftItem[K]) {
@@ -260,10 +261,26 @@ export function ItemDetail({
             </button>
           </div>
           <button
-            onClick={() => onSave?.(draft)}
-            className="w-full rounded-xl bg-neutral-900 py-3 text-sm font-semibold text-white hover:bg-neutral-800 transition-colors"
+            onClick={async () => {
+              if (isSaving || !onSave) return;
+              setIsSaving(true);
+              try {
+                await onSave(draft);
+              } finally {
+                setIsSaving(false);
+              }
+            }}
+            disabled={isSaving}
+            className="w-full flex items-center justify-center gap-2 rounded-xl bg-neutral-900 py-3 text-sm font-semibold text-white hover:bg-neutral-800 transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            Save changes
+            {isSaving ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              "Save changes"
+            )}
           </button>
         </div>
       )}
