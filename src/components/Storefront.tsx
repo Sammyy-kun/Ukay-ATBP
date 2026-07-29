@@ -3,6 +3,7 @@
 import { ThriftItem } from "@/lib/types";
 import { Shirt, Search } from "lucide-react";
 import { useState, useMemo } from "react";
+import { CoatLogo } from "./CoatLogo";
 
 interface StorefrontProps {
   items: ThriftItem[];
@@ -42,8 +43,7 @@ export function Storefront({ items, onLoginClick }: StorefrontProps) {
     <div className="min-h-screen bg-white">
       {/* Navbar */}
       <header className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-neutral-200 bg-white px-4 sm:px-8">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/coat-logo.png" alt="coat" className="h-8 w-auto object-contain" />
+        <CoatLogo className="text-3xl" />
         <button
           onClick={onLoginClick}
           className="rounded-lg border border-neutral-200 bg-white px-4 py-2 text-xs font-medium text-neutral-700 hover:bg-neutral-50 transition-colors"

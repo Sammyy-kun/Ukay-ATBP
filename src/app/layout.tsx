@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
-import { DM_Sans } from 'next/font/google';
+import { DM_Sans, Playfair_Display } from 'next/font/google';
 import './globals.css';
 
 const dmSans = DM_Sans({ subsets: ['latin'] });
+export const playfair = Playfair_Display({ subsets: ['latin'], style: ['italic'], weight: ['900'], variable: '--font-playfair' });
 
 export const metadata: Metadata = {
   title: 'Ukay-Ukay Thrift Retail Platform',
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${dmSans.className} antialiased`}>
+      <body className={`${dmSans.className} ${playfair.variable} antialiased`}>
         {children}
       </body>
     </html>

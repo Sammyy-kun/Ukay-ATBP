@@ -8,6 +8,7 @@ import { ItemDetail } from "@/components/ItemDetail";
 import { AuthScreen } from "@/components/AuthScreen";
 import { Storefront } from "@/components/Storefront";
 import { DashboardSkeleton } from "@/components/SkeletonLoader";
+import { CoatLogo } from "@/components/CoatLogo";
 import { ThriftItem, DashboardStats } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
 import {
@@ -271,8 +272,7 @@ export default function Page() {
       >
         {/* Logo */}
         <div className="flex h-20 items-center border-b border-neutral-200 px-8">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/coat-logo.png" alt="coat" className="h-9 w-auto object-contain" />
+          <CoatLogo className="text-2xl" />
         </div>
 
         {/* Nav links */}
