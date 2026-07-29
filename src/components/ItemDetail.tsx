@@ -51,7 +51,12 @@ export function ItemDetail({
         </button>
         <span className="text-sm font-semibold text-neutral-900">{item.id}</span>
         <button
-          onClick={() => onDelete?.(item.id)}
+          type="button"
+          onClick={() => {
+            if (window.confirm(`Are you sure you want to delete ${item.title} (${item.id})?`)) {
+              onDelete?.(item.id);
+            }
+          }}
           aria-label="Delete item"
           className="rounded-full p-2 text-red-500 hover:bg-red-50 transition-colors"
         >

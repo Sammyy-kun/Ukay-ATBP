@@ -170,12 +170,16 @@ export default function Page() {
     const current = items.find((it) => it.id === id);
     if (!current) return;
     const merged = { ...current, ...patch };
-    await supabase.from("items").update(toRow(merged)).eq("id", id);
+    setItems((prev) => prev.map((it) => (it.id === id ? merged : it)));
+    const { error } = await supabase.from("items").update(toRow(merged)).eq("id", id);
+    if (error) console.error("Error updating item:", error);
   }
 
   async function deleteItemById(id: string) {
-    await supabase.from("items").delete().eq("id", id);
+    setItems((prev) => prev.filter((it) => it.id !== id));
     setView({ name: "dashboard" });
+    const { error } = await supabase.from("items").delete().eq("id", id);
+    if (error) console.error("Error deleting item:", error);
   }
 
   // ── Nav ────────────────────────────────────────────────────────────────────
