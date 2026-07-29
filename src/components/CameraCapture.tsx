@@ -34,17 +34,46 @@ export function CameraCapture({ onBack, onComplete }: CameraCaptureProps) {
       const dataUrl = e.target?.result as string;
       if (!dataUrl) return;
 
-      setPhotos((prev) => {
-        const next = [...prev];
-        next[activeIndex] = dataUrl;
-        return next;
-      });
+      const img = new Image();
+      img.onload = () => {
+        const MAX_WIDTH = 800;
+        let width = img.width;
+        let height = img.height;
 
-      // advance to next empty slot
-      const nextIndex = photos.findIndex((p, i) => p === null && i !== activeIndex);
-      if (nextIndex !== -1) setActiveIndex(nextIndex);
+        if (width > MAX_WIDTH) {
+          height = Math.round((height * MAX_WIDTH) / width);
+          width = MAX_WIDTH;
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          savePhoto(dataUrl);
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        // Compress heavily for the database
+        const compressedDataUrl = canvas.toDataURL("image/jpeg", 0.6);
+        savePhoto(compressedDataUrl);
+      };
+      img.src = dataUrl;
     };
     reader.readAsDataURL(file);
+  }
+
+  function savePhoto(dataUrl: string) {
+    setPhotos((prev) => {
+      const next = [...prev];
+      next[activeIndex] = dataUrl;
+      return next;
+    });
+
+    const nextIndex = photos.findIndex((p, i) => p === null && i !== activeIndex);
+    if (nextIndex !== -1) setActiveIndex(nextIndex);
   }
 
   function handleFileSelected(e: React.ChangeEvent<HTMLInputElement>) {
