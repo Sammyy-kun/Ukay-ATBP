@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Shirt, Mail, Lock, Store, User, ArrowRight, Loader2 } from "lucide-react";
+import { CoatLogo } from "./CoatLogo";
 
 export function AuthScreen({ onBack }: { onBack?: () => void }) {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -88,12 +89,16 @@ export function AuthScreen({ onBack }: { onBack?: () => void }) {
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-neutral-900 shadow-sm">
             <Shirt className="h-6 w-6 text-white" />
           </div>
-          <h2 className="mt-4 text-2xl font-bold tracking-tight text-neutral-900">
-            {showPasscodePrompt
-              ? "Enter Access Code"
-              : isSignUp
-              ? "Create your store account"
-              : "Welcome back to Ukay-Ukay"}
+          <h2 className="mt-4 flex items-center justify-center gap-1.5 text-2xl font-bold tracking-tight text-neutral-900">
+            {showPasscodePrompt ? (
+              "Enter Access Code"
+            ) : isSignUp ? (
+              "Create your store account"
+            ) : (
+              <>
+                Welcome back to <CoatLogo className="text-3xl font-normal -mt-1" />
+              </>
+            )}
           </h2>
           <p className="mt-1.5 text-sm text-neutral-500">
             {showPasscodePrompt
