@@ -359,7 +359,7 @@ export default function Page() {
                       item={item}
                       onBack={() => setView({ name: "dashboard" })}
                       onSave={async (updated) => {
-                        await supabase.from("items").update(toRow(updated)).eq("id", updated.id);
+                        await updateItem(updated.id, updated);
                         setView({ name: "dashboard" });
                       }}
                       onMarkReserved={(id) => updateItem(id, { status: "reserved" })}
