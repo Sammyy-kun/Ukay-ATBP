@@ -341,9 +341,11 @@ export default function Page() {
                       photos,
                       listedAt: now,
                     };
-                    await supabase.from("items").insert(toRow(newItem));
+                    setItems((prev) => [newItem, ...prev]);
                     setView({ name: "detail", id: newItem.id });
                     setActiveNav("Inventory");
+                    const { error } = await supabase.from("items").insert(toRow(newItem));
+                    if (error) console.error("Error inserting item:", error);
                   }}
                 />
               )}
