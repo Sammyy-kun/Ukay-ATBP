@@ -1,3 +1,4 @@
+
 export function CoatLogo({ className = "" }: { className?: string }) {
   return (
     <span

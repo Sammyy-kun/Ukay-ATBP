@@ -29,3 +29,10 @@ export interface DashboardStats {
   reserved: number;
   revenue7d: number;
 }
+
+export interface SellerProfile {
+  id: string;
+  userId: string;
+  storeName: string;
+  showStorefront: boolean;
+}

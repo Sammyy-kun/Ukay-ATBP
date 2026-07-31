@@ -9,8 +9,9 @@ import { AuthScreen } from "@/components/AuthScreen";
 import { Storefront } from "@/components/Storefront";
 import { DashboardSkeleton } from "@/components/SkeletonLoader";
 import { CoatLogo } from "@/components/CoatLogo";
-import { ThriftItem, DashboardStats } from "@/lib/types";
+import { ThriftItem, DashboardStats, SellerProfile } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
+import { SettingsPage } from "@/components/SettingsPage";
 import {
   LayoutGrid,
   Camera,
@@ -87,7 +88,7 @@ function deriveStats(items: ThriftItem[]): DashboardStats {
 // ---------------------------------------------------------------------------
 // Navigation config
 // ---------------------------------------------------------------------------
-type View = { name: "dashboard" } | { name: "capture" } | { name: "detail"; id: string };
+type View = { name: "dashboard" } | { name: "capture" } | { name: "detail"; id: string } | { name: "settings" };
 
 const NAV_ITEMS = [
   { icon: LayoutGrid, label: "Inventory", view: "dashboard" as const },
@@ -106,6 +107,8 @@ export default function Page() {
 
   const [items, setItems] = useState<ThriftItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showStorefront, setShowStorefront] = useState(true); // default: show clothes
+  const [sellerProfile, setSellerProfile] = useState<SellerProfile | null>(null);
   const [view, setViewRaw] = useState<View>(() => {
     if (typeof window === "undefined") return { name: "dashboard" };
     try {
@@ -164,6 +167,66 @@ export default function Page() {
         }
         setLoading(false);
       });
+  }, [user]);
+
+  // ── Fetch seller profile (for storefront toggle + settings) ─────────────
+  useEffect(() => {
+    async function fetchProfile() {
+      if (!user) {
+        // Unauthenticated: fetch any seller profile to check show_storefront
+        const { data } = await supabase
+          .from("seller_profiles")
+          .select("*")
+          .limit(1)
+          .maybeSingle();
+
+        if (data) {
+          setShowStorefront(data.show_storefront);
+        }
+        // If no profile exists, default to true (show clothes)
+        return;
+      }
+
+      // Authenticated: fetch this user's profile
+      const { data, error } = await supabase
+        .from("seller_profiles")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (!error && data) {
+        setSellerProfile({
+          id: data.id,
+          userId: data.user_id,
+          storeName: data.store_name,
+          showStorefront: data.show_storefront,
+        });
+        setShowStorefront(data.show_storefront);
+      } else if (!data) {
+        // Auto-create profile for new sellers
+        const { data: created } = await supabase
+          .from("seller_profiles")
+          .insert({
+            user_id: user.id,
+            store_name: user.user_metadata?.store_name || "Thrift Store",
+            show_storefront: true,
+          })
+          .select()
+          .single();
+
+        if (created) {
+          const profile: SellerProfile = {
+            id: created.id,
+            userId: created.user_id,
+            storeName: created.store_name,
+            showStorefront: created.show_storefront,
+          };
+          setSellerProfile(profile);
+          setShowStorefront(created.show_storefront);
+        }
+      }
+    }
+    fetchProfile();
   }, [user]);
 
   // ── Real-time subscription ─────────────────────────────────────────────────
@@ -236,7 +299,7 @@ export default function Page() {
     if (showAuth) {
       return <AuthScreen onBack={() => setShowAuth(false)} />;
     }
-    
+
     if (loading) {
       return (
         <div className="flex h-screen items-center justify-center bg-neutral-50 text-neutral-400">
@@ -244,7 +307,12 @@ export default function Page() {
         </div>
       );
     }
-    
+
+    // If storefront is disabled, show auth screen directly
+    if (!showStorefront) {
+      return <AuthScreen />;
+    }
+
     return <Storefront items={items} onLoginClick={() => setShowAuth(true)} />;
   }
 
@@ -298,7 +366,18 @@ export default function Page() {
 
         {/* Bottom links */}
         <div className="space-y-1 border-t border-neutral-200 p-4">
-          <button className="flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-sm text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900 transition-colors">
+          <button
+            onClick={() => {
+              setActiveNav("Settings");
+              setView({ name: "settings" });
+              setSidebarOpen(false);
+            }}
+            className={`flex w-full items-center gap-3 rounded-lg px-4 py-2.5 text-sm transition-colors ${
+              activeNav === "Settings"
+                ? "bg-neutral-900 text-white"
+                : "text-neutral-500 hover:bg-neutral-100 hover:text-neutral-900"
+            }`}
+          >
             <Settings size={16} />
             Settings
           </button>
@@ -415,6 +494,16 @@ export default function Page() {
                     />
                   );
                 })()}
+
+              {view.name === "settings" && (
+                <SettingsPage
+                  userId={user.id}
+                  onBack={() => {
+                    setView({ name: "dashboard" });
+                    setActiveNav("Inventory");
+                  }}
+                />
+              )}
             </>
           )}
         </main>
