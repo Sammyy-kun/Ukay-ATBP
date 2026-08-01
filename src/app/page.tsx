@@ -3,16 +3,25 @@
 import { useState, useEffect } from "react";
 import { User as SupabaseUser } from "@supabase/supabase-js";
 import { Dashboard } from "@/components/Dashboard";
+import { DashboardOverview } from "@/components/DashboardOverview";
 import { CameraCapture } from "@/components/CameraCapture";
 import { ItemDetail } from "@/components/ItemDetail";
 import { AuthScreen } from "@/components/AuthScreen";
 import { Storefront } from "@/components/Storefront";
 import { DashboardSkeleton } from "@/components/SkeletonLoader";
 import { CoatLogo } from "@/components/CoatLogo";
-import { ThriftItem, DashboardStats, SellerProfile } from "@/lib/types";
+import { ThriftItem, DashboardStats, SellerProfile, OrderWithDetails, Buyer } from "@/lib/types";
+import { fetchOrdersWithDetails, createOrder } from "@/lib/orders";
 import { supabase } from "@/lib/supabase";
 import { SettingsPage } from "@/components/SettingsPage";
+import { toast } from "sonner";
+import { OrdersView } from "@/components/OrdersView";
+import { AssignBuyerModal } from "@/components/AssignBuyerModal";
+import { BuyerList } from "@/components/BuyerList";
+import { BuyerDetail } from "@/components/BuyerDetail";
+import { ExpensesView } from "@/components/ExpensesView";
 import {
+  LayoutDashboard,
   LayoutGrid,
   Camera,
   ShoppingBag,
@@ -88,13 +97,23 @@ function deriveStats(items: ThriftItem[]): DashboardStats {
 // ---------------------------------------------------------------------------
 // Navigation config
 // ---------------------------------------------------------------------------
-type View = { name: "dashboard" } | { name: "capture" } | { name: "detail"; id: string } | { name: "settings" };
+type View =
+  | { name: "overview" }
+  | { name: "dashboard" }
+  | { name: "capture" }
+  | { name: "detail"; id: string }
+  | { name: "settings" }
+  | { name: "orders" }
+  | { name: "buyers" }
+  | { name: "buyer-detail"; buyer: Buyer }
+  | { name: "expenses" };
 
 const NAV_ITEMS = [
+  { icon: LayoutDashboard, label: "Dashboard", view: "overview" as const },
   { icon: LayoutGrid, label: "Inventory", view: "dashboard" as const },
   { icon: Camera, label: "New Listing", view: "capture" as const },
-  { icon: ShoppingBag, label: "Orders", view: "dashboard" as const },
-  { icon: BarChart2, label: "Reports", view: "dashboard" as const },
+  { icon: ShoppingBag, label: "Orders", view: "orders" as const },
+  { icon: BarChart2, label: "Expenses", view: "expenses" as const },
 ];
 
 // ---------------------------------------------------------------------------
@@ -106,22 +125,25 @@ export default function Page() {
   const [showAuth, setShowAuth] = useState(false);
 
   const [items, setItems] = useState<ThriftItem[]>([]);
+  const [orders, setOrders] = useState<OrderWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [showStorefront, setShowStorefront] = useState(true); // default: show clothes
   const [sellerProfile, setSellerProfile] = useState<SellerProfile | null>(null);
   const [view, setViewRaw] = useState<View>(() => {
-    if (typeof window === "undefined") return { name: "dashboard" };
+    if (typeof window === "undefined") return { name: "overview" };
     try {
       const saved = localStorage.getItem("ukay-view");
-      return saved ? (JSON.parse(saved) as View) : { name: "dashboard" };
+      return saved ? (JSON.parse(saved) as View) : { name: "overview" };
     } catch {
-      return { name: "dashboard" };
+      return { name: "overview" };
     }
   });
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showAssignBuyer, setShowAssignBuyer] = useState(false);
+  const [itemToSell, setItemToSell] = useState<ThriftItem | null>(null);
   const [activeNav, setActiveNavRaw] = useState(() => {
-    if (typeof window === "undefined") return "Inventory";
-    return localStorage.getItem("ukay-nav") ?? "Inventory";
+    if (typeof window === "undefined") return "Dashboard";
+    return localStorage.getItem("ukay-nav") ?? "Dashboard";
   });
 
   function setView(v: View) {
@@ -143,9 +165,13 @@ export default function Page() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
       setAuthLoading(false);
+      if (event === "SIGNED_IN" && session?.user) {
+        const name = session.user.user_metadata?.full_name || "there";
+        toast.success(`Welcome back, ${name}!`, { description: "You're now signed in." });
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -167,6 +193,12 @@ export default function Page() {
         }
         setLoading(false);
       });
+  }, [user]);
+
+  // ── Fetch orders ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!user) return;
+    fetchOrdersWithDetails(user.id).then(setOrders);
   }, [user]);
 
   // ── Fetch seller profile (for storefront toggle + settings) ─────────────
@@ -269,14 +301,25 @@ export default function Page() {
     setItems((prev) => prev.filter((it) => it.id !== id));
     setView({ name: "dashboard" });
     const { error } = await supabase.from("items").delete().eq("id", id);
-    if (error) console.error("Error deleting item:", error);
+    if (error) {
+      console.error("Error deleting item:", error);
+      toast.error("Failed to delete item");
+    } else {
+      toast.success("Item deleted", { description: "The listing has been removed." });
+    }
   }
 
   // ── Nav ────────────────────────────────────────────────────────────────────
-  function handleNavClick(label: string, v: "dashboard" | "capture") {
+  function handleNavClick(label: string, v: "overview" | "dashboard" | "capture" | "orders" | "expenses") {
     setActiveNav(label);
-    if (v === "dashboard") {
+    if (v === "overview") {
+      setView({ name: "overview" });
+    } else if (v === "dashboard") {
       setView({ name: "dashboard" });
+    } else if (v === "orders") {
+      setView({ name: "orders" });
+    } else if (v === "expenses") {
+      setView({ name: "expenses" });
     } else {
       setView({ name: "capture" });
     }
@@ -285,6 +328,7 @@ export default function Page() {
 
   async function handleSignOut() {
     await supabase.auth.signOut();
+    toast.success("Signed out", { description: "See you next time!" });
   }
 
   if (authLoading) {
@@ -339,7 +383,7 @@ export default function Page() {
         }`}
       >
         {/* Logo */}
-        <div className="flex h-20 items-center border-b border-neutral-200 px-8">
+        <div className="flex h-16 items-center border-b border-neutral-200 px-8">
           <CoatLogo className="text-2xl" />
         </div>
 
@@ -403,7 +447,6 @@ export default function Page() {
             >
               <Menu size={20} />
             </button>
-            <h1 className="text-sm font-medium text-neutral-900">{activeNav}</h1>
           </div>
 
           <div className="flex items-center gap-2">
@@ -422,9 +465,12 @@ export default function Page() {
             <DashboardSkeleton />
           ) : (
             <>
+              {view.name === "overview" && (
+                <DashboardOverview items={items} orders={orders} />
+              )}
+
               {view.name === "dashboard" && (
                 <Dashboard
-                  stats={stats}
                   items={items}
                   onNewItem={() => {
                     setView({ name: "capture" });
@@ -456,6 +502,7 @@ export default function Page() {
                     };
                     setItems((prev) => [newItem, ...prev]);
                     setView({ name: "detail", id: newItem.id });
+                    toast.success("Listing created", { description: `${newItem.id} added to inventory.` });
                     setActiveNav("Inventory");
                     const { error } = await supabase.from("items").insert(toRow(newItem));
                     if (error) console.error("Error inserting item:", error);
@@ -476,13 +523,13 @@ export default function Page() {
                         setView({ name: "dashboard" });
                       }}
                       onMarkReserved={(id) => updateItem(id, { status: "reserved" })}
-                      onMarkSold={(id) =>
-                        updateItem(id, {
-                          status: "sold",
-                          soldAt: new Date().toISOString(),
-                          soldPrice: item.price,
-                        })
-                      }
+                      onMarkSold={(id) => {
+                        const sellItem = items.find((it) => it.id === id);
+                        if (sellItem) {
+                          setItemToSell(sellItem);
+                          setShowAssignBuyer(true);
+                        }
+                      }}
                       onRelist={(id) =>
                         updateItem(id, {
                           status: "available",
@@ -504,10 +551,97 @@ export default function Page() {
                   }}
                 />
               )}
+
+              {view.name === "expenses" && (
+                <ExpensesView userId={user.id} />
+              )}
+
+              {view.name === "orders" && (
+                <OrdersView
+                  userId={user.id}
+                  onViewBuyers={() => setView({ name: "buyers" })}
+                />
+              )}
+
+              {view.name === "buyers" && (
+                <BuyerList
+                  userId={user.id}
+                  onSelectBuyer={(buyer) => setView({ name: "buyer-detail", buyer })}
+                  onBack={() => setView({ name: "orders" })}
+                />
+              )}
+
+              {view.name === "buyer-detail" && (
+                <BuyerDetail
+                  buyer={view.buyer}
+                  userId={user.id}
+                  onBack={() => setView({ name: "buyers" })}
+                />
+              )}
             </>
           )}
         </main>
       </div>
+
+      {/* Assign Buyer Modal */}
+      {showAssignBuyer && itemToSell && (
+        <AssignBuyerModal
+          userId={user.id}
+          itemName={itemToSell.title}
+          onClose={() => {
+            setShowAssignBuyer(false);
+            setItemToSell(null);
+          }}
+          onConfirm={async (buyerId, paymentMethod) => {
+            // Create the order
+            await createOrder({
+              userId: user.id,
+              itemId: itemToSell.id,
+              buyerId: buyerId || undefined,
+              salePrice: itemToSell.price,
+              paymentStatus: "Unpaid",
+              paymentMethod: paymentMethod as any,
+              fulfillmentStatus: "Pending",
+              source: "Facebook",
+              notes: "",
+            });
+            // Mark item as sold
+            await updateItem(itemToSell.id, {
+              status: "sold",
+              soldAt: new Date().toISOString(),
+              soldPrice: itemToSell.price,
+            });
+            setShowAssignBuyer(false);
+            setItemToSell(null);
+            toast.success("Item sold", { description: "Order created successfully." });
+            setView({ name: "orders" });
+            setActiveNav("Orders");
+          }}
+          onSkip={async () => {
+            // Create order without buyer
+            await createOrder({
+              userId: user.id,
+              itemId: itemToSell.id,
+              salePrice: itemToSell.price,
+              paymentStatus: "Unpaid",
+              fulfillmentStatus: "Pending",
+              source: "Facebook",
+              notes: "",
+            });
+            // Mark item as sold
+            await updateItem(itemToSell.id, {
+              status: "sold",
+              soldAt: new Date().toISOString(),
+              soldPrice: itemToSell.price,
+            });
+            setShowAssignBuyer(false);
+            setItemToSell(null);
+            toast.success("Item sold", { description: "Order created (no buyer linked)." });
+            setView({ name: "orders" });
+            setActiveNav("Orders");
+          }}
+        />
+      )}
     </div>
   );
 }

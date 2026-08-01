@@ -2,10 +2,10 @@
 export function CoatLogo({ className = "" }: { className?: string }) {
   return (
     <span
-      className={`font-['var(--font-playfair)'] italic font-black tracking-tight text-neutral-900 ${className}`}
-      style={{ fontFamily: "var(--font-playfair)", fontStyle: "italic", fontWeight: 900 }}
+      className={`font-['var(--font-poppins)'] font-bold tracking-tight text-neutral-900 ${className}`}
+      style={{ fontFamily: "var(--font-poppins)", fontWeight: 700 }}
     >
-      coat
+      sn4g
     </span>
   );
 }

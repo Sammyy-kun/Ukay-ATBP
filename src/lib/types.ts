@@ -36,3 +36,68 @@ export interface SellerProfile {
   storeName: string;
   showStorefront: boolean;
 }
+
+// ── Orders module ──────────────────────────────────────────────────────────
+export type PaymentStatus = "Unpaid" | "Paid" | "Refunded";
+export type FulfillmentStatus = "Pending" | "Packed" | "Shipped" | "Delivered";
+export type OrderSource = "Facebook" | "TikTok" | "In-Person" | "Other";
+
+export interface Buyer {
+  id: string;
+  userId: string;
+  facebookName: string;
+  messengerUrl?: string;
+  phone?: string;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Order {
+  id: string;
+  userId: string;
+  itemId: string;
+  buyerId?: string;
+  salePrice: number;
+  paymentStatus: PaymentStatus;
+  paymentMethod?: string;
+  paymentReference?: string;
+  paidAt?: string;
+  refundedAt?: string;
+  fulfillmentStatus: FulfillmentStatus;
+  shippedAt?: string;
+  deliveredAt?: string;
+  trackingNumber?: string;
+  source: OrderSource;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrderWithDetails extends Order {
+  buyer?: Buyer;
+  itemTitle?: string;
+  itemPhoto?: string;
+}
+
+// ── Expenses module ─────────────────────────────────────────────────────────
+export type ExpenseCategory =
+  | "Shipping"
+  | "Transportation"
+  | "Packaging"
+  | "Supplies"
+  | "Platform Fees"
+  | "Other";
+
+export interface Expense {
+  id: string;
+  userId: string;
+  category: ExpenseCategory;
+  description: string;
+  amount: number;
+  date: string;
+  orderId?: string;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+}

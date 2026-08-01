@@ -1,18 +1,34 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, Shirt, Search, Download } from "lucide-react";
-import { DashboardStats, ThriftItem, Size, ItemStatus } from "@/lib/types";
+import { Plus, Shirt, Search, Download, Pencil } from "lucide-react";
+import { ThriftItem, Size, ItemStatus } from "@/lib/types";
 import { StatusBadge } from "./StatusBadge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface DashboardProps {
-  stats: DashboardStats;
   items: ThriftItem[];
   onNewItem?: () => void;
   onSelectItem?: (id: string) => void;
 }
 
-export function Dashboard({ stats, items, onNewItem, onSelectItem }: DashboardProps) {
+export function Dashboard({ items, onNewItem, onSelectItem }: DashboardProps) {
   const [query, setQuery] = useState("");
   const [sizeFilter, setSizeFilter] = useState<Size | "all">("all");
   const [statusFilter, setStatusFilter] = useState<ItemStatus | "all">("all");
@@ -32,9 +48,9 @@ export function Dashboard({ stats, items, onNewItem, onSelectItem }: DashboardPr
 
   function exportCSV() {
     if (items.length === 0) return;
-    
+
     const headers = ["id", "title", "category", "size", "condition", "status", "price", "lengthInches", "widthInches", "listedAt", "soldAt", "soldPrice"];
-    
+
     const csvContent = [
       headers.join(","),
       ...items.map(item => headers.map(header => {
@@ -56,133 +72,146 @@ export function Dashboard({ stats, items, onNewItem, onSelectItem }: DashboardPr
 
   return (
     <div className="w-full">
+      {/* Header */}
       <div className="mb-4 sm:mb-6 flex items-center justify-between">
-        <span className="text-base sm:text-lg font-semibold text-neutral-900">Inventory</span>
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight text-neutral-900">Inventory</h2>
+          <p className="text-sm text-neutral-500">
+            {items.length} total item{items.length !== 1 ? "s" : ""}
+          </p>
+        </div>
         <div className="flex items-center gap-2">
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={exportCSV}
-            className="flex items-center gap-1.5 rounded-xl border border-neutral-200 bg-white px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-neutral-700 hover:bg-neutral-50 transition-colors"
+            className="gap-1.5"
           >
             <Download size={16} /> Export
-          </button>
-          <button
+          </Button>
+          <Button
+            size="sm"
             onClick={onNewItem}
-            className="flex items-center gap-1.5 rounded-xl bg-neutral-900 px-3.5 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm font-semibold text-white hover:bg-neutral-800 transition-colors"
+            className="gap-1.5"
           >
             <Plus size={16} /> New item
-          </button>
+          </Button>
         </div>
       </div>
 
-      {/* stats */}
-      <div className="mb-6 grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
-        <StatCard label="Live listings" value={stats.liveListings} />
-        <StatCard label="Sold this week" value={stats.soldThisWeek} />
-        <StatCard label="Reserved" value={stats.reserved} />
-        <StatCard label="Revenue, 7d" value={`₱${stats.revenue7d.toLocaleString()}`} />
-      </div>
-
-      {/* filters */}
+      {/* Filters */}
       <div className="mb-6 flex flex-col sm:flex-row gap-2.5 sm:gap-3">
         <div className="relative flex-1 min-w-[160px]">
-          <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-          <input
+          <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by SKU, title, category..."
-            className="w-full rounded-xl border border-neutral-200 py-2.5 pl-9 pr-3 text-sm text-neutral-900 focus:border-neutral-900 focus:outline-none"
+            className="pl-9"
           />
         </div>
         <div className="flex gap-2">
-          <select
-            value={sizeFilter}
-            onChange={(e) => setSizeFilter(e.target.value as Size | "all")}
-            className="flex-1 sm:flex-none rounded-xl border border-neutral-200 px-3.5 py-2.5 text-sm text-neutral-700 focus:border-neutral-900"
-          >
-            <option value="all">All sizes</option>
-            {(["XS", "S", "M", "L", "XL"] as Size[]).map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value as ItemStatus | "all")}
-            className="flex-1 sm:flex-none rounded-xl border border-neutral-200 px-3.5 py-2.5 text-sm text-neutral-700 focus:border-neutral-900"
-          >
-            <option value="all">All status</option>
-            <option value="available">Available</option>
-            <option value="reserved">Reserved</option>
-            <option value="sold">Sold</option>
-          </select>
+          <Select value={sizeFilter} onValueChange={(v) => setSizeFilter(v as Size | "all")}>
+            <SelectTrigger className="w-full sm:w-[130px]">
+              <SelectValue placeholder="All sizes" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All sizes</SelectItem>
+              {(["XS", "S", "M", "L", "XL"] as Size[]).map((s) => (
+                <SelectItem key={s} value={s}>{s}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as ItemStatus | "all")}>
+            <SelectTrigger className="w-full sm:w-[130px]">
+              <SelectValue placeholder="All status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All status</SelectItem>
+              <SelectItem value="available">Available</SelectItem>
+              <SelectItem value="reserved">Reserved</SelectItem>
+              <SelectItem value="sold">Sold</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      {/* item grid */}
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-4">
-        {filtered.map((item) => {
-          const coverPhoto = item.photos && item.photos.length > 0 ? item.photos[0] : null;
-          return (
-            <button
-              key={item.id}
-              onClick={() => onSelectItem?.(item.id)}
-              className="group overflow-hidden rounded-2xl border border-neutral-200 bg-white text-left transition-all hover:border-neutral-400 hover:shadow-md"
-            >
-              <div className="relative flex aspect-square items-center justify-center bg-neutral-50 overflow-hidden">
-                {coverPhoto ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={coverPhoto}
-                    alt={item.title}
-                    className={`h-full w-full object-cover transition-transform duration-300 group-hover:scale-105 ${
-                      item.status === "sold" ? "opacity-60 grayscale" : ""
-                    }`}
-                  />
-                ) : (
-                  <Shirt
-                    size={32}
-                    className={`text-neutral-300 ${item.status === "sold" ? "opacity-50" : ""}`}
-                    aria-hidden
-                  />
-                )}
-                <div className="absolute left-2 top-2">
-                  <StatusBadge status={item.status} />
-                </div>
-              </div>
-              <div className="p-3">
-                <p className="truncate text-xs font-semibold text-neutral-900">
-                  {item.title} · {item.size}
-                </p>
-                <div className="mt-1 flex items-center justify-between text-xs text-neutral-500">
-                  <span className="font-semibold text-neutral-900">₱{item.price}</span>
-                  <span className="text-[11px] text-neutral-400">{item.id}</span>
-                </div>
-                {(item.lengthInches || item.widthInches) && (
-                  <p className="mt-1 text-[10px] text-neutral-400">
-                    {item.lengthInches ? `L: ${item.lengthInches}" ` : ""}
-                    {item.widthInches ? `W: ${item.widthInches}"` : ""}
-                  </p>
-                )}
-              </div>
-            </button>
-          );
-        })}
-        {filtered.length === 0 && (
-          <p className="col-span-full py-12 text-center text-sm text-neutral-400">
-            No items match your filters.
+      {/* Items Table */}
+      {filtered.length > 0 ? (
+        <div className="rounded-lg border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-12">Photo</TableHead>
+                <TableHead>SKU</TableHead>
+                <TableHead>Title</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Size</TableHead>
+                <TableHead>Price</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((item) => {
+                const coverPhoto = item.photos?.[0] ?? null;
+                return (
+                  <TableRow key={item.id}>
+                    <TableCell>
+                      <div className="h-10 w-10 overflow-hidden rounded-md bg-neutral-100 flex items-center justify-center">
+                        {coverPhoto ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={coverPhoto}
+                            alt={item.title}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <Shirt size={16} className="text-neutral-300" />
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                      {item.id}
+                    </TableCell>
+                    <TableCell className="font-medium max-w-[200px] truncate">
+                      {item.title}
+                    </TableCell>
+                    <TableCell>{item.category}</TableCell>
+                    <TableCell>{item.size}</TableCell>
+                    <TableCell className="tabular-nums font-medium">
+                      ₱{item.price.toLocaleString()}
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge status={item.status} />
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onSelectItem?.(item.id)}
+                        className="gap-1.5 h-8"
+                      >
+                        <Pencil size={14} />
+                        Edit
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center py-16 text-center">
+          <Shirt size={40} className="mb-3 text-neutral-200" />
+          <p className="text-sm text-muted-foreground">
+            {items.length === 0
+              ? "No items yet. Click \"New item\" to add your first listing."
+              : "No items match your filters."}
           </p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function StatCard({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-3.5 sm:p-5">
-      <p className="mb-1 text-xs text-neutral-500">{label}</p>
-      <p className="text-lg sm:text-2xl font-bold text-neutral-900">{value}</p>
+        </div>
+      )}
     </div>
   );
 }

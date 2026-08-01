@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { SellerProfile } from "@/lib/types";
 import { ArrowLeft, Loader2, Store, Eye, EyeOff } from "lucide-react";
+import { toast } from "sonner";
 
 interface SettingsPageProps {
   userId: string;
@@ -71,6 +72,11 @@ export function SettingsPage({ userId, onBack }: SettingsPageProps) {
       console.error("Error updating storefront setting:", error);
       // Revert on error
       setProfile({ ...profile, showStorefront: !value });
+      toast.error("Failed to save setting");
+    } else {
+      toast.success("Setting saved", {
+        description: value ? "Storefront is now visible." : "Storefront is now hidden.",
+      });
     }
     setSaving(false);
   }
